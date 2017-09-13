@@ -73,7 +73,8 @@ class Dfu extends EventEmitter {
      * Available transport parameters:
      *  <ul>
      *  <li>{Object} adapter: An instance of adapter.
-     *  <li>{string} targetAddress: The target address to connect to.
+     *  <li>{string} targetAddress: The target address to connect to. Required if targetName not given.
+     *  <li>{string} targetName: The target name to connect to. Required if targetAddress not given.
      *  <li>{string} targetAddressType: The target address type.
      *  <li>{number} [prnValue]: Packet receipt notification number.
      *  <li>{number} [mtuSize]: Maximum transmission unit number.
