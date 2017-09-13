@@ -59,13 +59,22 @@ function setupAdapter(adapter, callback) {
         baudRate: 1000000,
         parity: 'none',
         flowControl: 'none',
-        enableBLE: true,
+        enableBLE: false,
         eventInterval: 0,
     };
 
     adapter.open(options, error => {
         assert(!error);
-        callback();
+        adapter.enableBLE(
+            null,
+            (error, params, app_ram_base) => {
+                if (error) {
+                    console.log(`error: ${error} params: ${JSON.stringify(params)}, app_ram_base: ${app_ram_base}`);
+                } else {
+                    callback();
+                }
+            }
+        );
     });
 }
 
