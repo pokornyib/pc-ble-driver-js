@@ -102,7 +102,8 @@ class DfuTransport extends EventEmitter {
      *
      * Available transport parameters:
      * - adapter:           An instance of adapter (required)
-     * - targetAddress:     The target address to connect to (required)
+     * - targetAddress:     The target address to connect to (required if targetName not given)
+     * - targetName:        The target name to connect to (required if targetAddress not given)
      * - targetAddressType: The target address type (required)
      * - prnValue:          Packet receipt notification number (optional)
      * - mtuSize:           Maximum transmission unit number (optional)
@@ -116,8 +117,8 @@ class DfuTransport extends EventEmitter {
         if (!transportParameters.adapter) {
             throw new Error('Required transport parameter "adapter" was not provided');
         }
-        if (!transportParameters.targetAddress) {
-            throw new Error('Required transport parameter "targetAddress" was not provided');
+        if (!transportParameters.targetAddress && !transportParameters.targetName) {
+            throw new Error('None of "targetAddress" or "targetName" were provided as transport parameter');
         }
         if (!transportParameters.targetAddressType) {
             throw new Error('Required transport parameter "targetAddressType" was not provided');
@@ -143,14 +144,16 @@ class DfuTransport extends EventEmitter {
         }
 
         const targetAddress = this._transportParameters.targetAddress;
+        const targetName = this._transportParameters.targetName;
         const targetAddressType = this._transportParameters.targetAddressType;
         const prnValue = this._transportParameters.prnValue || DEFAULT_PRN;
         const mtuSize = this._transportParameters.mtuSize || MAX_SUPPORTED_MTU_SIZE;
 
-        this._debug(`Initializing DFU transport with targetAddress: ${targetAddress}, ` +
+        this._debug(`Initializing DFU transport with targetAddress: ${targetAddress}, targetName: ${targetName}, ` +
             `targetAddressType: ${targetAddressType}, prnValue: ${prnValue}, mtuSize: ${mtuSize}.`);
 
-        return this._connectIfNeeded(targetAddress, targetAddressType)
+        return this._findTargetAddress()
+            .then(address => this._connectIfNeeded(address, targetAddressType))
             .then(device => this._enterDfuMode(device))
             .then(device => this._getCharacteristicIds(device))
             .then(characteristicIds => {
@@ -166,6 +169,40 @@ class DfuTransport extends EventEmitter {
             .then(() => this._setPrn(prnValue))
             .then(() => this._setMtuSize(mtuSize))
             .then(() => this._isInitialized = true);
+    }
+
+    _findTargetAddress() {
+        if (this._transportParameters.targetAddress) {
+            return Promise.resolve(this._transportParameters.targetAddress);
+        }
+        return new Promise((resolve, reject) => {
+            this._adapter.on('deviceDiscovered', device => {
+                this._debug(`Discovered device. Address: ${device.address}, name: ${device.name}.`);
+                if (device.name === this._transportParameters.targetName) {
+                    this._transportParameters.targetAddress = device.address;
+                    this._adapter.stopScan(error => {
+                        if (error) {
+                            reject(`Unable to stop scanning: ${error.message}`);
+                        } else {
+                            resolve(device.address);
+                        }
+                    });
+                }
+            });
+
+            const scanParameters = {
+                active: true,
+                interval: 100,
+                window: 50,
+                timeout: 5,
+            };
+
+            this._adapter.startScan(scanParameters, error => {
+                if (error) {
+                    reject(new Error(`Unable to scan for address: ${error.message}`));
+                }
+            });
+        });
     }
 
     /**
