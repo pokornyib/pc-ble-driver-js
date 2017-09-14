@@ -58,10 +58,12 @@ class ControlPointService {
     }
 
     createObject(objectType, size) {
+        console.log(`Creating object with type: ${objectType === 1 ? 'COMMAND' : 'DATA'}, size: ${size}`);
         return this._sendCommand([].concat([ControlPointOpcode.CREATE, objectType], intToArray(size, 4)));
     }
 
     selectObject(objectType) {
+        console.log(`Selecting object with type: ${objectType}`);
         return this._sendCommand([ControlPointOpcode.SELECT, objectType]);
     }
 
@@ -74,11 +76,13 @@ class ControlPointService {
     }
 
     _sendCommand(command) {
+        console.log(`Sending command: ${getOpCodeName(command[0])}, full command: ${command}`);
         this._notificationQueue.startListening();
         return this._writeCharacteristicValue(command)
             .then(() => this._notificationQueue.readNext(command[0]))
             .then(response => ControlPointService.parseResponse(response))
             .then(response => {
+                console.log(`Got response to ${getOpCodeName(command[0])}: ${JSON.stringify(response)}`);
                 this._notificationQueue.stopListening();
                 return response;
             })

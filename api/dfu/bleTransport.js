@@ -733,6 +733,7 @@ class DfuTransport extends EventEmitter {
      * @private
      */
     _createAndWriteObject(data, type, offset, crc32) {
+        console.log('');
         return new Promise((resolve, reject) => {
             let attempts = 0;
             const tryWrite = () => {
@@ -740,6 +741,7 @@ class DfuTransport extends EventEmitter {
                     .then(() => this._writeObject(data, type, offset, crc32))
                     .then(progress => resolve(progress))
                     .catch(error => {
+                        console.log(`Got error: ${error.message}`);
                         attempts++;
                         if (this._shouldRetry(attempts, error)) {
                             tryWrite();
@@ -766,6 +768,7 @@ class DfuTransport extends EventEmitter {
      * @private
      */
     _writeObject(data, type, offset, crc32) {
+        console.log(`Writing object with type: ${type === 1 ? 'COMMAND' : 'DATA'}, length: ${data.length}, offset: ${offset}, crc32: ${crc32}`);
         return this._objectWriter.writeObject(data, type, offset, crc32)
             .then(progress => {
                 return this._validateProgress(progress)

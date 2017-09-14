@@ -69,6 +69,7 @@ class ObjectWriter extends EventEmitter {
      */
     writeObject(data, type, offset, crc32) {
         const packets = splitArray(data, this._mtuSize);
+        console.log(`Writing ${packets.length} packets with packet size ${this._mtuSize}`);
         const packetWriter = this._createPacketWriter(offset, crc32);
         this._notificationQueue.startListening();
         return this._writePackets(packetWriter, packets, type)
