@@ -112,15 +112,23 @@ function performDfu(adapter, targetAddress, pathToZip) {
 
 const args = process.argv.slice(2);
 if (args.length < 2) {
-    console.log('Usage:   node dfu.js <targetAddress> <pathToDfuZip>');
-    console.log('Example: node dfu.js FF:11:22:33:AA:BF ./dfu/dfu_test_app_hrm_s132.zip');
+    console.log('Usage:   node dfu.js <comName> <targetAddress> <pathToDfuZip>');
+    console.log('Example: node dfu.js COM0 FF:11:22:33:AA:BF ./dfu/dfu_test_app_hrm_s132.zip');
     process.exit(1);
 }
-const targetAddress = args[0];
-const pathToZip = args[1];
+const port = args[0];
+const targetAddress = args[1];
+const pathToZip = args[2];
 
 adapterFactory.getAdapters((error, adapters) => {
     assert(!error);
-    const adapter = adapters[Object.keys(adapters)[0]];
+    const serialNumbers = Object.keys(adapters);
+    const serialNumber = serialNumbers.find(number => adapters[number].state.port === port);
+    const adapter = adapters[serialNumber];
+    if (!adapter) {
+        console.log(`Port ${port} not found`);
+        process.exit(1);
+    }
     performDfu(adapter, targetAddress, pathToZip);
 });
+
